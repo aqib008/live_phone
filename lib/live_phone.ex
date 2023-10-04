@@ -1,12 +1,12 @@
 defmodule LivePhone do
 
 
-  use PicselloWeb, :live_component
 
+  use Phoenix.LiveComponent
   use Phoenix.HTML
 
   alias Phoenix.LiveView.Socket
-  alias Picsello.LivePhone.Country
+  alias LivePhone.{Country, Util}
 
   @impl true
   def mount(socket) do
