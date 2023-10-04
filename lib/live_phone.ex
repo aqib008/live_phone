@@ -1,14 +1,12 @@
 defmodule LivePhone do
-  @external_resource "./README.md"
-  @moduledoc """
-  #{File.read!(@external_resource)}
-  """
 
-  use Phoenix.LiveComponent
+
+  use PicselloWeb, :live_component
+
   use Phoenix.HTML
 
   alias Phoenix.LiveView.Socket
-  alias LivePhone.{Country, Util}
+  alias Picsello.LivePhone.Country
 
   @impl true
   def mount(socket) do
@@ -16,6 +14,7 @@ defmodule LivePhone do
      socket
      |> assign_new(:preferred, fn -> ["US", "GB"] end)
      |> assign_new(:tabindex, fn -> 0 end)
+    #  |> assign_new(:apply_format?, fn -> false end)
      |> assign_new(:value, fn -> "" end)
      |> assign_new(:opened?, fn -> false end)
      |> assign_new(:valid?, fn -> false end)}
@@ -23,22 +22,25 @@ defmodule LivePhone do
 
   @impl true
   def update(assigns, socket) do
+    IO.inspect(assigns)
     current_country =
       assigns[:country] || socket.assigns[:country] || hd(assigns[:preferred] || ["US"])
 
     masks =
         current_country
+        |> IO.inspect(label: "masks....countrry..")
         |> get_masks()
+        # |> List.first() Can add it for
         |> Enum.join(",")
         |> String.replace(" ", "-")
-
+        |> IO.inspect(label: "masks......")
 
     socket =
       socket
       |> assign(assigns)
       |> assign_country(current_country)
       |> assign(:masks, masks)
-
+      socket.assigns.value |> IO.inspect(label: "masks....0..")
     {:ok, set_value(socket, socket.assigns.value)}
   end
 
@@ -48,7 +50,7 @@ defmodule LivePhone do
     <div
       class={"live_phone flex-1 #{if @valid?, do: "live_phone-valid"}"}
       id={"live_phone-#{@id}"}
-      phx-hook="LivePhone"
+      phx-hook="Phone"
     >
       <.country_selector
         tabindex={@tabindex}
@@ -60,7 +62,7 @@ defmodule LivePhone do
 
       <input
         type="tel"
-        class="live_phone-input"
+        class={"text-input flex-1 #{if @valid?, do: "live_phone-valid"}"}
         value={assigns[:value]}
         tabindex={assigns[:tabindex]}
         placeholder={assigns[:placeholder] || get_placeholder(assigns[:country])}
@@ -106,9 +108,9 @@ defmodule LivePhone do
           found_value
       end || ""
 
-    {_, formatted_value} = Util.normalize(value, socket.assigns[:country])
+    {_, formatted_value} = normalize(value, socket.assigns[:country])
     value = apply_mask(value, socket.assigns[:country])
-    valid? = Util.valid?(formatted_value)
+    valid? = valid?(formatted_value)
 
     push? = socket.assigns[:formatted_value] != formatted_value
 
@@ -143,6 +145,7 @@ defmodule LivePhone do
       _ ->
         ""
     end
+    |> IO.inspect(label: "apply mask janab")
   end
 
   @impl true
@@ -151,7 +154,7 @@ defmodule LivePhone do
   end
 
   def handle_event("select_country", %{"country" => country}, socket) do
-    valid? = Util.valid?(socket.assigns[:formatted_value])
+    valid? = valid?(socket.assigns[:formatted_value])
 
     placeholder =
       if socket.assigns[:country] == country do
@@ -182,8 +185,10 @@ defmodule LivePhone do
     country
     |> ExPhoneNumber.Metadata.get_for_region_code()
     |> case do
-      %{country_code: country_code, fixed_line: %{example_number: number}} ->
+      %{country_code: country_code, fixed_line: %{example_number: number}} = test ->
+        test   |> IO.inspect(label: "placeholder.........0.")
         number
+        # |> String.replace(~r/\d/, "5")
         |> ExPhoneNumber.parse(country)
         |> case do
           {:ok, result} ->
@@ -197,6 +202,7 @@ defmodule LivePhone do
         end
     end
     |> String.replace(" ", "-")
+    |> IO.inspect(label: "placeholder..........1")
   end
 
   @spec get_masks(String.t()) :: [String.t()]
@@ -256,7 +262,7 @@ defmodule LivePhone do
       aria-expanded={to_string(@opened?)}
       role="combobox"
     >
-      <span class="live_phone-country-flag"><%= Util.emoji_for_country(@country) %></span>
+      <span class="live_phone-country-flag"><%= emoji_for_country(@country) %></span>
       <span class="live_phone-country-code"><%= @region_code %></span>
     </div>
     """
@@ -317,4 +323,33 @@ defmodule LivePhone do
     </li>
     """
   end
+
+  def valid?(phone) do
+    case ExPhoneNumber.parse(phone, nil) do
+      {:ok, parsed_phone} -> ExPhoneNumber.is_valid_number?(parsed_phone)
+      _ -> false
+    end
+  end
+
+  def normalize(phone, country) do
+    phone
+    |> String.replace(~r/[^+\d]/, "")
+    |> ExPhoneNumber.parse(country)
+    |> case do
+      {:ok, result} -> {:ok, ExPhoneNumber.format(result, :e164)}
+      _ -> {:error, phone}
+    end
+  end
+
+  def emoji_for_country(nil), do: ""
+
+  def emoji_for_country(country_code) do
+    country_code
+    |> String.upcase()
+    |> String.to_charlist()
+    |> Enum.map(&(&1 - 65 + 127_462))
+    |> List.to_string()
+  end
+
+
 end
