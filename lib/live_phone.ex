@@ -1,7 +1,5 @@
 defmodule LivePhone do
 
-
-
   use Phoenix.LiveComponent
   use Phoenix.HTML
 
@@ -14,7 +12,6 @@ defmodule LivePhone do
      socket
      |> assign_new(:preferred, fn -> ["US", "GB"] end)
      |> assign_new(:tabindex, fn -> 0 end)
-    #  |> assign_new(:apply_format?, fn -> false end)
      |> assign_new(:value, fn -> "" end)
      |> assign_new(:opened?, fn -> false end)
      |> assign_new(:valid?, fn -> false end)}
@@ -22,25 +19,21 @@ defmodule LivePhone do
 
   @impl true
   def update(assigns, socket) do
-    IO.inspect(assigns)
     current_country =
       assigns[:country] || socket.assigns[:country] || hd(assigns[:preferred] || ["US"])
 
     masks =
         current_country
-        |> IO.inspect(label: "masks....countrry..")
         |> get_masks()
-        # |> List.first() Can add it for
         |> Enum.join(",")
         |> String.replace(" ", "-")
-        |> IO.inspect(label: "masks......")
 
     socket =
       socket
       |> assign(assigns)
       |> assign_country(current_country)
       |> assign(:masks, masks)
-      socket.assigns.value |> IO.inspect(label: "masks....0..")
+
     {:ok, set_value(socket, socket.assigns.value)}
   end
 
@@ -145,7 +138,6 @@ defmodule LivePhone do
       _ ->
         ""
     end
-    |> IO.inspect(label: "apply mask janab")
   end
 
   @impl true
@@ -185,10 +177,8 @@ defmodule LivePhone do
     country
     |> ExPhoneNumber.Metadata.get_for_region_code()
     |> case do
-      %{country_code: country_code, fixed_line: %{example_number: number}} = test ->
-        test   |> IO.inspect(label: "placeholder.........0.")
+      %{country_code: country_code, fixed_line: %{example_number: number}} ->
         number
-        # |> String.replace(~r/\d/, "5")
         |> ExPhoneNumber.parse(country)
         |> case do
           {:ok, result} ->
@@ -202,7 +192,6 @@ defmodule LivePhone do
         end
     end
     |> String.replace(" ", "-")
-    |> IO.inspect(label: "placeholder..........1")
   end
 
   @spec get_masks(String.t()) :: [String.t()]
