@@ -16,7 +16,6 @@ defmodule LivePhone do
      socket
      |> assign_new(:preferred, fn -> ["US", "GB"] end)
      |> assign_new(:tabindex, fn -> 0 end)
-     |> assign_new(:apply_format?, fn -> false end)
      |> assign_new(:value, fn -> "" end)
      |> assign_new(:opened?, fn -> false end)
      |> assign_new(:valid?, fn -> false end)}
@@ -28,11 +27,11 @@ defmodule LivePhone do
       assigns[:country] || socket.assigns[:country] || hd(assigns[:preferred] || ["US"])
 
     masks =
-      if assigns[:apply_format?] do
         current_country
         |> get_masks()
         |> Enum.join(",")
-      end
+        |> String.replace(" ", "-")
+
 
     socket =
       socket
@@ -47,7 +46,7 @@ defmodule LivePhone do
   def render(assigns) do
     ~H"""
     <div
-      class={"live_phone #{if @valid?, do: "live_phone-valid"}"}
+      class={"live_phone flex-1 #{if @valid?, do: "live_phone-valid"}"}
       id={"live_phone-#{@id}"}
       phx-hook="LivePhone"
     >
@@ -185,7 +184,6 @@ defmodule LivePhone do
     |> case do
       %{country_code: country_code, fixed_line: %{example_number: number}} ->
         number
-        |> String.replace(~r/\d/, "5")
         |> ExPhoneNumber.parse(country)
         |> case do
           {:ok, result} ->
@@ -198,6 +196,7 @@ defmodule LivePhone do
             ""
         end
     end
+    |> String.replace(" ", "-")
   end
 
   @spec get_masks(String.t()) :: [String.t()]

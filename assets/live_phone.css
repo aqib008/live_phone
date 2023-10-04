@@ -1,9 +1,10 @@
 .live_phone {
   position: relative;
   display: flex;
-  border-radius: 5px;
+  border-radius: 9px;
   border: 1px solid #ddd;
-  background: #fff;
+  background: #dfd3d3;
+  background-color: (229 231 235 / var(--tw-border-opacity))
 }
 
 .live_phone-valid {
@@ -11,7 +12,7 @@
 }
 
 .live_phone:focus-within {
-  box-shadow: 0 0 5px blue;
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), 0 0 #0000;
 }
 
 input.live_phone-input,
@@ -19,7 +20,7 @@ input.live_phone-input,
   -webkit-font-smoothing: antialiased;
   font-weight: normal;
   font-family: sans-serif;
-  font-size: .875em;
+  font-size: 1rem;
 }
 
 .live_phone-country {
@@ -40,7 +41,7 @@ input.live_phone-input,
 .live_phone-country:focus {
   outline: 0;
   background: #F2F2F2;
-  box-shadow: 0 0 5px blue;
+  box-shadow: 0 0 5px #0000;
   z-index: 3;
   position: relative;
 }
