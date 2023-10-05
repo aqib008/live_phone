@@ -1,4 +1,8 @@
 defmodule LivePhone do
+  @external_resource "./README.md"
+  @moduledoc """
+  #{File.read!(@external_resource)}
+  """
 
   use Phoenix.LiveComponent
   use Phoenix.HTML
@@ -23,10 +27,10 @@ defmodule LivePhone do
       assigns[:country] || socket.assigns[:country] || hd(assigns[:preferred] || ["US"])
 
     masks =
-        current_country
-        |> get_masks()
-        |> Enum.join(",")
-        |> String.replace(" ", "-")
+      current_country
+      |> get_masks()
+      |> Enum.join(",")
+      |> String.replace(" ", "-")
 
     socket =
       socket
@@ -41,9 +45,9 @@ defmodule LivePhone do
   def render(assigns) do
     ~H"""
     <div
-      class={"live_phone flex-1 #{if @valid?, do: "live_phone-valid"}"}
+      class="live_phone flex-1"
       id={"live_phone-#{@id}"}
-      phx-hook="Phone"
+      phx-hook="LivePhone"
     >
       <.country_selector
         tabindex={@tabindex}
@@ -55,7 +59,7 @@ defmodule LivePhone do
 
       <input
         type="tel"
-        class={"text-input flex-1 #{if @valid?, do: "live_phone-valid"}"}
+        class="text-input flex-1 border-none outline-none border-transparent focus:border-transparent focus:ring-0"
         value={assigns[:value]}
         tabindex={assigns[:tabindex]}
         placeholder={assigns[:placeholder] || get_placeholder(assigns[:country])}
@@ -101,11 +105,13 @@ defmodule LivePhone do
           found_value
       end || ""
 
-    {_, formatted_value} = normalize(value, socket.assigns[:country])
+    {_, formatted_value} = Util.normalize(value, socket.assigns[:country])
     value = apply_mask(value, socket.assigns[:country])
-    valid? = valid?(formatted_value)
+    valid? = formatted_value == "" or Util.valid?(formatted_value)
 
-    push? = socket.assigns[:formatted_value] != formatted_value
+    push? =
+      socket.assigns[:formatted_value] != nil &&
+        socket.assigns[:formatted_value] != formatted_value
 
     socket
     |> assign(:valid?, valid?)
@@ -141,12 +147,22 @@ defmodule LivePhone do
   end
 
   @impl true
+  def handle_event("typing", %{"key" => "Backspace", "value" => ""}, socket) do
+    {:noreply,
+     assign(socket, valid?: true)
+     |> push_event("change", %{
+       id: "live_phone-#{socket.assigns.id}",
+       value: ""
+     })}
+  end
+
+  @impl true
   def handle_event("typing", %{"value" => value}, socket) do
     {:noreply, set_value(socket, value)}
   end
 
   def handle_event("select_country", %{"country" => country}, socket) do
-    valid? = valid?(socket.assigns[:formatted_value])
+    valid? = Util.valid?(socket.assigns[:formatted_value])
 
     placeholder =
       if socket.assigns[:country] == country do
@@ -251,7 +267,7 @@ defmodule LivePhone do
       aria-expanded={to_string(@opened?)}
       role="combobox"
     >
-      <span class="live_phone-country-flag"><%= emoji_for_country(@country) %></span>
+      <span class="live_phone-country-flag"><%= Util.emoji_for_country(@country) %></span>
       <span class="live_phone-country-code"><%= @region_code %></span>
     </div>
     """
@@ -312,33 +328,4 @@ defmodule LivePhone do
     </li>
     """
   end
-
-  def valid?(phone) do
-    case ExPhoneNumber.parse(phone, nil) do
-      {:ok, parsed_phone} -> ExPhoneNumber.is_valid_number?(parsed_phone)
-      _ -> false
-    end
-  end
-
-  def normalize(phone, country) do
-    phone
-    |> String.replace(~r/[^+\d]/, "")
-    |> ExPhoneNumber.parse(country)
-    |> case do
-      {:ok, result} -> {:ok, ExPhoneNumber.format(result, :e164)}
-      _ -> {:error, phone}
-    end
-  end
-
-  def emoji_for_country(nil), do: ""
-
-  def emoji_for_country(country_code) do
-    country_code
-    |> String.upcase()
-    |> String.to_charlist()
-    |> Enum.map(&(&1 - 65 + 127_462))
-    |> List.to_string()
-  end
-
-
 end
