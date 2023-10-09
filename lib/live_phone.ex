@@ -23,8 +23,22 @@ defmodule LivePhone do
 
   @impl true
   def update(assigns, socket) do
-    current_country =
+    default_country = fn ->
       assigns[:country] || socket.assigns[:country] || hd(assigns[:preferred] || ["US"])
+    end
+
+    current_country =
+      if assigns[:form] && assigns[:field] do
+        case input_value(assigns[:form], assigns[:field]) |> Util.get_country() do
+          {:ok, %{code: code}} ->
+            code
+
+          _ ->
+            default_country.()
+        end
+      else
+        default_country.()
+      end
 
     masks =
       current_country
@@ -45,7 +59,7 @@ defmodule LivePhone do
   def render(assigns) do
     ~H"""
     <div
-      class="live_phone flex-1"
+      class="live_phone flex-1 focus:border-sky-600"
       id={"live_phone-#{@id}"}
       phx-hook="LivePhone"
     >
@@ -59,8 +73,9 @@ defmodule LivePhone do
 
       <input
         type="tel"
-        class="text-input flex-1 border-none outline-none border-transparent focus:border-transparent focus:ring-0"
+        class="text-input flex-1 outline-none focus:border-none focus:border-transparent focus:outline-none focus:ring-0"
         value={assigns[:value]}
+        style="border-top-left-radius: 0px; border-bottom-left-radius: 0px"
         tabindex={assigns[:tabindex]}
         placeholder={assigns[:placeholder] || get_placeholder(assigns[:country])}
         data-masks={@masks}
@@ -187,6 +202,11 @@ defmodule LivePhone do
   def handle_event("close", _, socket) do
     {:noreply, assign(socket, :opened?, false)}
   end
+
+  def handle_event(_, _, socket) do
+    {:noreply, socket}
+  end
+
 
   @spec get_placeholder(String.t()) :: String.t()
   defp get_placeholder(country) do

@@ -12,9 +12,7 @@
   background: #ECFFE8;
 }
 
-.live_phone:focus-within {
-  box-shadow:  0px 4px 14px rgba(0, 0, 0, 0.15);
-}
+
 
 input.live_phone-input,
 .live_phone-country {
@@ -39,13 +37,7 @@ input.live_phone-input,
   content: ' ';
 }
 
-.live_phone-country:focus {
-  outline: 0;
-  background: #F2F2F2;
-  box-shadow: 0 0 5px #0000;
-  z-index: 3;
-  position: relative;
-}
+
 
 .live_phone-country:active {
   padding-top: 2px;
@@ -137,9 +129,6 @@ input.live_phone-input {
   background: #ECFFE8;
 }
 
-.live_phone:focus-within {
-  box-shadow:  0px 4px 14px rgba(0, 0, 0, 0.15);
-}
 
 input.live_phone-input,
 .live_phone-country {
@@ -164,13 +153,7 @@ input.live_phone-input,
   content: ' ';
 }
 
-.live_phone-country:focus {
-  outline: 0;
-  background: #F2F2F2;
-  box-shadow: 0 0 5px #0000;
-  z-index: 3;
-  position: relative;
-}
+
 
 .live_phone-country:active {
   padding-top: 2px;
