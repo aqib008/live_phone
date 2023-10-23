@@ -18,11 +18,20 @@ defmodule LivePhone do
      |> assign_new(:tabindex, fn -> 0 end)
      |> assign_new(:value, fn -> "" end)
      |> assign_new(:opened?, fn -> false end)
+     |> assign_new(:disable?, fn -> false end)
      |> assign_new(:valid?, fn -> false end)}
   end
 
   @impl true
   def update(assigns, socket) do
+    socket =
+      if assigns[:disable?] do
+        {:ok, %{code: code}} = LivePhone.Util.get_country(assigns[:value])
+        assign(socket, country: code)
+      else
+        socket
+      end
+
     default_country = fn ->
       assigns[:country] || socket.assigns[:country] || hd(assigns[:preferred] || ["US"])
     end
@@ -58,17 +67,15 @@ defmodule LivePhone do
   @impl true
   def render(assigns) do
     ~H"""
-    <div
-      class="live_phone flex-1 focus:border-sky-600"
-      id={"live_phone-#{@id}"}
-      phx-hook="LivePhone"
-    >
+    <div class="live_phone flex-1 focus:border-sky-600" id={"live_phone-#{@id}"} phx-hook="LivePhone">
       <.country_selector
+        disable?={@disable?}
         tabindex={@tabindex}
         target={@myself}
         opened?={@opened?}
         country={@country}
-        wrapper={"live_phone-#{@id}"}
+        wrapper={"live_phone-#{@id}"
+        }
       />
 
       <input
@@ -162,9 +169,12 @@ defmodule LivePhone do
   end
 
   @impl true
-  def handle_event("typing", %{"key" => "Backspace", "value" => ""}, socket) do
+  def handle_event("typing", %{"value" => ""}, socket) do
     {:noreply,
-     assign(socket, valid?: true)
+     socket
+     |> assign(:formatted_value, "")
+     |> assign(:value, "")
+     |> assign(valid?: true)
      |> push_event("change", %{
        id: "live_phone-#{socket.assigns.id}",
        value: ""
@@ -206,7 +216,6 @@ defmodule LivePhone do
   def handle_event(_, _, socket) do
     {:noreply, socket}
   end
-
 
   @spec get_placeholder(String.t()) :: String.t()
   defp get_placeholder(country) do
@@ -278,18 +287,25 @@ defmodule LivePhone do
     assigns = assign(assigns, :region_code, region_code)
 
     ~H"""
-    <div
-      class="live_phone-country"
-      tabindex={@tabindex}
-      phx-target={@target}
-      phx-click="toggle"
-      aria-owns={@wrapper}
-      aria-expanded={to_string(@opened?)}
-      role="combobox"
-    >
-      <span class="live_phone-country-flag"><%= Util.emoji_for_country(@country) %></span>
-      <span class="live_phone-country-code"><%= @region_code %></span>
-    </div>
+    <%= if @disable? do %>
+      <div class="live_phone-country">
+        <span class="live_phone-country-flag"><%= Util.emoji_for_country(@country) %></span>
+        <span class="live_phone-country-code"><%= @region_code %></span>
+      </div>
+    <% else %>
+      <div
+        class="live_phone-country"
+        tabindex={@tabindex}
+        phx-target={@target}
+        phx-click="toggle"
+        aria-owns={@wrapper}
+        aria-expanded={to_string(@opened?)}
+        role="combobox"
+      >
+        <span class="live_phone-country-flag"><%= Util.emoji_for_country(@country) %></span>
+        <span class="live_phone-country-code"><%= @region_code %></span>
+      </div>
+    <% end %>
     """
   end
 
@@ -328,7 +344,9 @@ defmodule LivePhone do
     assigns = assign(assigns, :selected?, selected?)
 
     class = ["live_phone-country-item"]
+
     class = if assigns[:selected?], do: ["selected" | class], else: class
+
     class = if assigns[:country].preferred, do: ["preferred" | class], else: class
 
     assigns = assign(assigns, :class, class)
